@@ -14,10 +14,10 @@ import os
 #                 LOAD ENVIRONMENT VARIABLES
 # ==========================================================
 load_dotenv()
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://uumezwowrtumbonsotyc.supabase.co")
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://ccghaaqflqzcvzkqbbfn.supabase.co")
 SUPABASE_KEY = os.getenv(
     "SUPABASE_KEY",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1bWV6d293cnR1bWJvbnNvdHljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNTk1MzUsImV4cCI6MjA3NjczNTUzNX0.dZGdfqa7BuYH6_W3yqirn8DsuEoffnyBm1qoLU-K0A0",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjZ2hhYXFmbHF6Y3Z6a3FiYmZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNjA3NzMsImV4cCI6MjA4NTYzNjc3M30.TLYTaQ4FF2eifyTxuddM4v1cJhyEUsTWB2egJmoXn_c",
 )
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
