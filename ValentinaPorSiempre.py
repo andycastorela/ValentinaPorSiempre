@@ -1,4 +1,7 @@
 import streamlit as st
+
+st.set_page_config(page_title="Valentina por Siempre", page_icon="VxS_logo.png", layout="wide")
+
 import pandas as pd
 from datetime import date, datetime
 from openpyxl import load_workbook
@@ -44,12 +47,6 @@ def ensure_last_edit_table():
 
 
 ensure_last_edit_table()
-
-
-# ==========================================================
-#               PAGE CONFIGURATION
-# ==========================================================
-st.set_page_config(page_title="Valentina por Siempre", page_icon="VxS_logo.png", layout="wide")
 
 
 # ==========================================================
