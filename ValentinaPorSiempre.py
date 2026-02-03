@@ -204,32 +204,18 @@ def calculate_age(dob):
 def style_excel(df, filename):
     df = df.copy()
 
-    # Convert date columns to actual Python date objects before exporting
+    # Convert date columns to real datetimes BEFORE exporting
     date_cols = ["fecha_nacimiento", "fecha_ultimo_apoyo"]
     for col in date_cols:
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce")
 
-    # Write to Excel
+    # Export to Excel
     df.to_excel(filename, index=False)
+
+    # Load workbook to apply formatting
     wb = load_workbook(filename)
     ws = wb.active
-                
-    # Widen date columns so Excel doesn't show #######
-    for col in ["fecha_nacimiento", "fecha_ultimo_apoyo"]:
-        if col in col_index:
-            idx = col_index[col]
-            col_letter = ws.cell(row=1, column=idx).column_letter
-            ws.column_dimensions[col_letter].width = 16
-
-    for col in ["fecha_nacimiento", "fecha_ultimo_apoyo"]:
-        if col in col_index:
-            idx = col_index[col]
-                for r in range(2, ws.max_row + 1):
-                c = ws.cell(row=r, column=idx)
-                if c.value is not None:
-                    c.number_format = "DD/MM/YYYY"
-    
     
     # Header style
     header_font = Font(bold=True, color="FFFFFF")
@@ -455,7 +441,7 @@ if st.session_state.authenticated:
     last_user, last_time = get_last_edit()
     if last_user and last_time:
         try:
-            formatted_time = datetime.fromisoformat(last_time).strftime('%d/%m/%Y %H:%M')
+            formatted_time = datetime.fromisoformat(last_time).strftime('%d/%m/%Y')
         except Exception:
             formatted_time = last_time
         st.sidebar.markdown(
