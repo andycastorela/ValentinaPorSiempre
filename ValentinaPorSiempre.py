@@ -202,35 +202,55 @@ def calculate_age(dob):
 
 
 def style_excel(df, filename):
-    for col in ["fecha_nacimiento", "fecha_ultimo_apoyo"]:
+    df = df.copy()
+
+    # Convert date columns to actual Python date objects before exporting
+    date_cols = ["fecha_nacimiento", "fecha_ultimo_apoyo"]
+    for col in date_cols:
         if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors='coerce').dt.date
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
+
+    # Write to Excel
     df.to_excel(filename, index=False)
+
     wb = load_workbook(filename)
     ws = wb.active
+    
+    # Header style
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill("solid", fgColor="ff8330")
     header_alignment = Alignment(horizontal="center", vertical="center")
+
     for cell in ws[1]:
         cell.font = header_font
         cell.fill = header_fill
         cell.alignment = header_alignment
+
     ws.freeze_panes = "A2"
 
+    # Map column names to Excel column indexes
+    col_index = {cell.value: i for i, cell in enumerate(ws[1], start=1)}
 
+    # Force Excel date format for date columns (so DOB displays correctly)
+    for col in date_cols:
+        if col in col_index:
+            idx = col_index[col]
+            for row in range(2, ws.max_row + 1):
+                c = ws.cell(row=row, column=idx)
+                if c.value is not None:
+                    c.number_format = "DD/MM/YYYY"
+
+    # Highlight cuidados_paliativos rows
     paliativos_fill = PatternFill("solid", fgColor="FFAB66")
-    paliativos_col = None
-    for idx, cell in enumerate(ws[1], start=1):
-        if cell.value == "cuidados_paliativos":
-            paliativos_col = idx
-            break
+    paliativos_col = col_index.get("cuidados_paliativos")
+
     if paliativos_col:
         for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
             if row[paliativos_col - 1].value in (1, True, "1", "true", "True"):
                 for cell in row:
                     cell.fill = paliativos_fill
-    wb.save(filename)
 
+    wb.save(filename)
 
 def display_wrapped_table(df):
     """Display a wrapped HTML DataFrame with cuidados paliativos highlight."""
@@ -348,15 +368,19 @@ if st.session_state.authenticated:
 
 
             # --- DELETE SECTION ---
-            delete_id = st.number_input("🗑️ ID del paciente a eliminar", min_value=0, step=1)
-            if st.button("Confirmar eliminación"):
-                st.warning(f"⚠️ ¿Seguro que deseas eliminar el paciente con ID {delete_id}?")
-                if st.button("✅ Sí, eliminar permanentemente"):
-                    supabase.table("pacientes").delete().eq("id", delete_id).execute()
-                    update_last_edit(st.session_state.user_name)
-                    st.success(f"🗑️ Paciente con ID {delete_id} eliminado correctamente.")
-                    st.rerun()
+            st.divider()
+            st.subheader("Eliminar paciente")
 
+            delete_id = st.selectbox("🗑️ ID del paciente a eliminar", df["id"].tolist(), key="delete_id")
+            st.warning(f"⚠️ ¿Seguro que deseas eliminar el paciente con ID {delete_id}?")
+            confirm = st.checkbox(f"✅ Confirmo que deseo eliminar el paciente con ID {delete_id}")
+
+            if st.button("Eliminar definitivamente", disabled=not confirm):
+                supabase.table("pacientes").delete().eq("id", int(delete_id)).execute()
+                update_last_edit(st.session_state.user_name)
+                st.success(f"🗑️ Paciente con ID {delete_id} eliminado correctamente.")
+                st.rerun()
+                
 
             # --- EXPORT ---
             if st.button("📥 Exportar a Excel"):
