@@ -208,13 +208,28 @@ def style_excel(df, filename):
     date_cols = ["fecha_nacimiento", "fecha_ultimo_apoyo"]
     for col in date_cols:
         if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
+            df[col] = pd.to_datetime(df[col], errors="coerce")
 
     # Write to Excel
     df.to_excel(filename, index=False)
-
     wb = load_workbook(filename)
     ws = wb.active
+                
+    # Widen date columns so Excel doesn't show #######
+    for col in ["fecha_nacimiento", "fecha_ultimo_apoyo"]:
+        if col in col_index:
+            idx = col_index[col]
+            col_letter = ws.cell(row=1, column=idx).column_letter
+            ws.column_dimensions[col_letter].width = 16
+
+    for col in ["fecha_nacimiento", "fecha_ultimo_apoyo"]:
+        if col in col_index:
+            idx = col_index[col]
+                for r in range(2, ws.max_row + 1):
+                c = ws.cell(row=r, column=idx)
+                if c.value is not None:
+                    c.number_format = "DD/MM/YYYY"
+    
     
     # Header style
     header_font = Font(bold=True, color="FFFFFF")
