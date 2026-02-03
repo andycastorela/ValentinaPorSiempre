@@ -376,10 +376,21 @@ if st.session_state.authenticated:
             confirm = st.checkbox(f"✅ Confirmo que deseo eliminar el paciente con ID {delete_id}")
 
             if st.button("Eliminar definitivamente", disabled=not confirm):
-                supabase.table("pacientes").delete().eq("id", int(delete_id)).execute()
+                delete_id_int = int(delete_id)
+
+                res = supabase.table("pacientes").delete().eq("id", delete_id_int).execute()
+                st.write("Delete response:", res)
+
+                verify = supabase.table("pacientes").select("id").eq("id", delete_id_int).execute()
+                st.write("Verify after delete:", verify)
+
                 update_last_edit(st.session_state.user_name)
-                st.success(f"🗑️ Paciente con ID {delete_id} eliminado correctamente.")
-                st.rerun()
+
+                if verify.data:
+                    st.error("No se eliminó. Probable RLS/policy bloqueando el DELETE.")
+                else:
+                    st.success(f"Paciente con ID {delete_id_int} eliminado correctamente.")
+                    st.rerun()
                 
 
             # --- EXPORT ---
