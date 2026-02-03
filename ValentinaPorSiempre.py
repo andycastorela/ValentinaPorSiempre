@@ -195,8 +195,16 @@ st.markdown("<h1 class='custom-title'>💛 Valentina por Siempre</h1>", unsafe_a
 #                 HELPER FUNCTIONS
 # ==========================================================
 def calculate_age(dob):
+    # Accepts either "YYYY-MM-DD" string or a date/datetime-like value
     if isinstance(dob, str):
-        dob = datetime.strptime(dob, "%Y-%m-%d").date()
+        try:
+            dob = datetime.strptime(dob, "%Y-%m-%d").date()
+        except ValueError:
+            # Fallback for timestamps like "YYYY-MM-DDTHH:MM:SS"
+            dob = pd.to_datetime(dob, errors="coerce").date()
+    elif isinstance(dob, datetime):
+        dob = dob.date()
+
     today = date.today()
     return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
 
@@ -204,19 +212,22 @@ def calculate_age(dob):
 def style_excel(df, filename):
     df = df.copy()
 
-    # Convert date columns to real datetimes BEFORE exporting
+    # Date columns in your dataset
     date_cols = ["fecha_nacimiento", "fecha_ultimo_apoyo"]
+
+    # 1) Convert to true datetimes BEFORE exporting so Excel stores real date values
     for col in date_cols:
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce")
 
-    # Export to Excel
-    df.to_excel(filename, index=False)
+    # 2) Write to a known sheet name (prevents formatting the wrong sheet)
+    with pd.ExcelWriter(filename, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Pacientes")
 
-    # Load workbook to apply formatting
+    # 3) Load workbook and apply formatting
     wb = load_workbook(filename)
-    ws = wb.active
-    
+    ws = wb["Pacientes"]
+
     # Header style
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill("solid", fgColor="ff8330")
@@ -229,39 +240,63 @@ def style_excel(df, filename):
 
     ws.freeze_panes = "A2"
 
-    # Map column names to Excel column indexes
+    # Build header index map
     col_index = {cell.value: i for i, cell in enumerate(ws[1], start=1)}
 
-    # Force Excel date format for date columns (so DOB displays correctly)
+    # 4) Widen and format date columns so Excel does NOT show #######
     for col in date_cols:
         if col in col_index:
             idx = col_index[col]
-            for row in range(2, ws.max_row + 1):
-                c = ws.cell(row=row, column=idx)
+            col_letter = ws.cell(row=1, column=idx).column_letter
+
+            # Wide enough even if Excel temporarily shows datetime with time
+            ws.column_dimensions[col_letter].width = 22
+
+            # Force date display format for all rows
+            for r in range(2, ws.max_row + 1):
+                c = ws.cell(row=r, column=idx)
                 if c.value is not None:
                     c.number_format = "DD/MM/YYYY"
 
-    # Highlight cuidados_paliativos rows
+    # Optional: widen some common long-text columns if they exist
+    for col_name, width in [
+        ("nombre", 24),
+        ("nombre_tutor", 24),
+        ("diagnostico", 28),
+        ("hospital", 22),
+        ("estado_origen", 18),
+        ("telefono_contacto", 18),
+        ("apoyos_entregados", 30),
+        ("notas", 40),
+    ]:
+        if col_name in col_index:
+            idx = col_index[col_name]
+            col_letter = ws.cell(row=1, column=idx).column_letter
+            ws.column_dimensions[col_letter].width = width
+
+    # 5) Highlight cuidados_paliativos rows
     paliativos_fill = PatternFill("solid", fgColor="FFAB66")
     paliativos_col = col_index.get("cuidados_paliativos")
 
     if paliativos_col:
         for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
-            if row[paliativos_col - 1].value in (1, True, "1", "true", "True"):
+            val = row[paliativos_col - 1].value
+            if val in (1, True, "1", "true", "True"):
                 for cell in row:
                     cell.fill = paliativos_fill
 
     wb.save(filename)
 
+
 def display_wrapped_table(df):
-    """Display a wrapped HTML DataFrame with cuidados paliativos highlight."""
+    # Display a wrapped HTML DataFrame with cuidados paliativos highlight
     df = df.copy()
+
     def row_style(row):
         style = ""
         if row.get("cuidados_paliativos") in [1, True, "1", "true", "True"]:
             style = 'background-color: #FFAB66;'
-        return f'<tr style="{style}">' + ''.join(f"<td>{x}</td>" for x in row) + "</tr>"
-
+        return f'<tr style="{style}">' + "".join(f"<td>{x}</td>" for x in row) + "</tr>"
 
     table_html = (
         "<table class='dataframe'>"
@@ -269,6 +304,7 @@ def display_wrapped_table(df):
         "<tbody>" + "".join(row_style(row) for _, row in df.iterrows()) + "</tbody></table>"
     )
     st.markdown(table_html, unsafe_allow_html=True)
+
 
 
 # ==========================================================
