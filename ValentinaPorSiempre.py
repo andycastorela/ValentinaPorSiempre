@@ -82,46 +82,61 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
     st.session_state.user_name = ""
 
+# Persist the typed name across reruns
+if "login_name" not in st.session_state:
+    st.session_state.login_name = ""
 
 if not st.session_state.authenticated:
     st.sidebar.title("🔐 Ingreso")
+
     user_key = st.sidebar.text_input("Introduce tu clave de acceso:", type="password")
 
-
     AUTHORIZED_KEYS = {
-        "userpassword123": None,
-        "masterpassword123": "Name Lastname"
+        "userpassword123": None,              # Team key: requires user name
+        "masterpassword123": "Name Lastname"  # Master key: fixed user name
     }
 
+    # Determine whether the currently typed key requires a user name
+    key_is_known = user_key in AUTHORIZED_KEYS
+    needs_name = key_is_known and (AUTHORIZED_KEYS.get(user_key) is None)
 
-# Only validate when user clicks
-login_clicked = st.sidebar.button("Ingresar")
+    # Always show the name input when it is required (not only after clicking)
+    if needs_name:
+        st.sidebar.text_input("Tu nombre (para registrar ediciones):", key="login_name")
 
-if login_clicked:
-    if not user_key:
-        st.sidebar.error("Ingresa una clave.")
-        st.stop()
+    # Button click triggers validation
+    login_clicked = st.sidebar.button("Ingresar")
 
-    if user_key not in AUTHORIZED_KEYS:
-        st.sidebar.error("Clave incorrecta.")
-        st.stop()
-
-# If key is valid, ask name only for team key
-    if AUTHORIZED_KEYS[user_key] is None:
-        user_name = st.sidebar.text_input("Tu nombre (para registrar ediciones):")
-        if not user_name:
-            st.sidebar.error("Escribe tu nombre para continuar.")
+    if login_clicked:
+        # 1) Empty key
+        if not user_key:
+            st.sidebar.error("Ingresa una clave.")
             st.stop()
-    else:
-        user_name = AUTHORIZED_KEYS[user_key]
 
-    st.session_state.authenticated = True
-    st.session_state.user_name = user_name
-    st.rerun()
-else:
-    # Optional: show a neutral hint when nothing is submitted yet
-    if user_key:
-        st.sidebar.info("Pulsa 'Ingresar' para validar la clave.")
+        # 2) Wrong key
+        if user_key not in AUTHORIZED_KEYS:
+            st.sidebar.error("Clave incorrecta.")
+            st.stop()
+
+        # 3) Key is valid; resolve user_name
+        if AUTHORIZED_KEYS[user_key] is None:
+            user_name = st.session_state.login_name.strip()
+            if not user_name:
+                st.sidebar.error("Escribe tu nombre para continuar.")
+                st.stop()
+        else:
+            user_name = AUTHORIZED_KEYS[user_key]
+
+        # 4) Log in
+        st.session_state.authenticated = True
+        st.session_state.user_name = user_name
+        st.rerun()
+    else:
+        # Optional hints (no blocking)
+        if user_key and not key_is_known:
+            st.sidebar.info("Pulsa 'Ingresar' para validar la clave.")
+        elif user_key and needs_name and not st.session_state.login_name.strip():
+            st.sidebar.info("Escribe tu nombre y luego pulsa 'Ingresar'.")
 
 
 # ==========================================================
