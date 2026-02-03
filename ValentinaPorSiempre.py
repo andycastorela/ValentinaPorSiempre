@@ -89,8 +89,8 @@ if not st.session_state.authenticated:
 
 
     AUTHORIZED_KEYS = {
-        "equipo_vxs": None,
-        "valentina_master": "Andrea"
+        "userpassword123": None,
+        "masterpassword123": "Name Lastname"
     }
 
 
