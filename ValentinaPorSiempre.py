@@ -94,24 +94,34 @@ if not st.session_state.authenticated:
     }
 
 
-    if user_key not in AUTHORIZED_KEYS:
-        st.warning("Por favor, introduce la clave de acceso para continuar.")
+# Only validate when user clicks
+login_clicked = st.sidebar.button("Ingresar")
+
+if login_clicked:
+    if not user_key:
+        st.sidebar.error("Ingresa una clave.")
         st.stop()
 
+    if user_key not in AUTHORIZED_KEYS:
+        st.sidebar.error("Clave incorrecta.")
+        st.stop()
 
+# If key is valid, ask name only for team key
     if AUTHORIZED_KEYS[user_key] is None:
         user_name = st.sidebar.text_input("Tu nombre (para registrar ediciones):")
         if not user_name:
-            st.info("Por favor, escribe tu nombre para continuar.")
+            st.sidebar.error("Escribe tu nombre para continuar.")
             st.stop()
     else:
         user_name = AUTHORIZED_KEYS[user_key]
 
-
-    if st.sidebar.button("Ingresar"):
-        st.session_state.authenticated = True
-        st.session_state.user_name = user_name
-        st.rerun()
+    st.session_state.authenticated = True
+    st.session_state.user_name = user_name
+    st.rerun()
+else:
+    # Optional: show a neutral hint when nothing is submitted yet
+    if user_key:
+        st.sidebar.info("Pulsa 'Ingresar' para validar la clave.")
 
 
 # ==========================================================
