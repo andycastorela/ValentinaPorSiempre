@@ -1,6 +1,8 @@
 import streamlit as st
 
+
 st.set_page_config(page_title="Valentina por Siempre", page_icon="VxS_logo.png", layout="wide")
+
 
 import pandas as pd
 from datetime import date, datetime
@@ -11,6 +13,8 @@ import base64
 from supabase import create_client
 from dotenv import load_dotenv
 import os
+
+
 
 
 # ==========================================================
@@ -26,7 +30,10 @@ except Exception:
     SUPABASE_URL = os.getenv("SUPABASE_URL")
     SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
 
 
 # ==========================================================
@@ -50,7 +57,11 @@ def ensure_last_edit_table():
             st.warning(f"No se pudo verificar/crear la tabla last_edit: {e}")
 
 
+
+
 ensure_last_edit_table()
+
+
 
 
 # ==========================================================
@@ -64,6 +75,8 @@ def update_last_edit(user_name):
         st.warning(f"⚠️ No se pudo actualizar el registro de edición en Supabase: {e}")
 
 
+
+
 def get_last_edit():
     try:
         result = supabase.table("last_edit").select("*").eq("id", 1).execute()
@@ -75,6 +88,8 @@ def get_last_edit():
     return None, None
 
 
+
+
 # ==========================================================
 #                 ACCESS CONTROL (LOGIN)
 # ==========================================================
@@ -82,61 +97,48 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
     st.session_state.user_name = ""
 
-# Persist the typed name across reruns
-if "login_name" not in st.session_state:
-    st.session_state.login_name = ""
+
+
 
 if not st.session_state.authenticated:
     st.sidebar.title("🔐 Ingreso")
-
     user_key = st.sidebar.text_input("Introduce tu clave de acceso:", type="password")
 
+
+
+
     AUTHORIZED_KEYS = {
-        "userpassword123": None,              # Team key: requires user name
-        "masterpassword123": "Name Lastname"  # Master key: fixed user name
+        "equipo_vxs": None,
+        "valentina_master": "Andrea"
     }
 
-    # Determine whether the currently typed key requires a user name
-    key_is_known = user_key in AUTHORIZED_KEYS
-    needs_name = key_is_known and (AUTHORIZED_KEYS.get(user_key) is None)
 
-    # Always show the name input when it is required (not only after clicking)
-    if needs_name:
-        st.sidebar.text_input("Tu nombre (para registrar ediciones):", key="login_name")
 
-    # Button click triggers validation
-    login_clicked = st.sidebar.button("Ingresar")
 
-    if login_clicked:
-        # 1) Empty key
-        if not user_key:
-            st.sidebar.error("Ingresa una clave.")
+    if user_key not in AUTHORIZED_KEYS:
+        st.warning("Por favor, introduce la clave de acceso para continuar.")
+        st.stop()
+
+
+
+
+    if AUTHORIZED_KEYS[user_key] is None:
+        user_name = st.sidebar.text_input("Tu nombre (para registrar ediciones):")
+        if not user_name:
+            st.info("Por favor, escribe tu nombre para continuar.")
             st.stop()
+    else:
+        user_name = AUTHORIZED_KEYS[user_key]
 
-        # 2) Wrong key
-        if user_key not in AUTHORIZED_KEYS:
-            st.sidebar.error("Clave incorrecta.")
-            st.stop()
 
-        # 3) Key is valid; resolve user_name
-        if AUTHORIZED_KEYS[user_key] is None:
-            user_name = st.session_state.login_name.strip()
-            if not user_name:
-                st.sidebar.error("Escribe tu nombre para continuar.")
-                st.stop()
-        else:
-            user_name = AUTHORIZED_KEYS[user_key]
 
-        # 4) Log in
+
+    if st.sidebar.button("Ingresar"):
         st.session_state.authenticated = True
         st.session_state.user_name = user_name
         st.rerun()
-    else:
-        # Optional hints (no blocking)
-        if user_key and not key_is_known:
-            st.sidebar.info("Pulsa 'Ingresar' para validar la clave.")
-        elif user_key and needs_name and not st.session_state.login_name.strip():
-            st.sidebar.info("Escribe tu nombre y luego pulsa 'Ingresar'.")
+
+
 
 
 # ==========================================================
@@ -148,6 +150,8 @@ def load_logo_base64(path: str):
         with open(file_path, "rb") as f:
             return base64.b64encode(f.read()).decode()
     return None
+
+
 
 
 logo_b64 = load_logo_base64("VxS_logo.png")
@@ -188,115 +192,71 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 
+
+
 st.markdown("<h1 class='custom-title'>💛 Valentina por Siempre</h1>", unsafe_allow_html=True)
+
+
 
 
 # ==========================================================
 #                 HELPER FUNCTIONS
 # ==========================================================
 def calculate_age(dob):
-    # Accepts either "YYYY-MM-DD" string or a date/datetime-like value
     if isinstance(dob, str):
-        try:
-            dob = datetime.strptime(dob, "%Y-%m-%d").date()
-        except ValueError:
-            # Fallback for timestamps like "YYYY-MM-DDTHH:MM:SS"
-            dob = pd.to_datetime(dob, errors="coerce").date()
-    elif isinstance(dob, datetime):
-        dob = dob.date()
-
+        dob = datetime.strptime(dob, "%Y-%m-%d").date()
     today = date.today()
     return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
 
 
+
+
 def style_excel(df, filename):
-    df = df.copy()
-
-    # Date columns in your dataset
-    date_cols = ["fecha_nacimiento", "fecha_ultimo_apoyo"]
-
-    # 1) Convert to true datetimes BEFORE exporting so Excel stores real date values
-    for col in date_cols:
+    for col in ["fecha_nacimiento", "fecha_ultimo_apoyo"]:
         if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce")
-
-    # 2) Write to a known sheet name (prevents formatting the wrong sheet)
-    with pd.ExcelWriter(filename, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Pacientes")
-
-    # 3) Load workbook and apply formatting
+            df[col] = pd.to_datetime(df[col], errors='coerce').dt.date
+    df.to_excel(filename, index=False)
     wb = load_workbook(filename)
-    ws = wb["Pacientes"]
-
-    # Header style
+    ws = wb.active
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill("solid", fgColor="ff8330")
     header_alignment = Alignment(horizontal="center", vertical="center")
-
     for cell in ws[1]:
         cell.font = header_font
         cell.fill = header_fill
         cell.alignment = header_alignment
-
     ws.freeze_panes = "A2"
 
-    # Build header index map
-    col_index = {cell.value: i for i, cell in enumerate(ws[1], start=1)}
 
-    # 4) Widen and format date columns so Excel does NOT show #######
-    for col in date_cols:
-        if col in col_index:
-            idx = col_index[col]
-            col_letter = ws.cell(row=1, column=idx).column_letter
 
-            # Wide enough even if Excel temporarily shows datetime with time
-            ws.column_dimensions[col_letter].width = 22
 
-            # Force date display format for all rows
-            for r in range(2, ws.max_row + 1):
-                c = ws.cell(row=r, column=idx)
-                if c.value is not None:
-                    c.number_format = "DD/MM/YYYY"
-
-    # Optional: widen some common long-text columns if they exist
-    for col_name, width in [
-        ("nombre", 24),
-        ("nombre_tutor", 24),
-        ("diagnostico", 28),
-        ("hospital", 22),
-        ("estado_origen", 18),
-        ("telefono_contacto", 18),
-        ("apoyos_entregados", 30),
-        ("notas", 40),
-    ]:
-        if col_name in col_index:
-            idx = col_index[col_name]
-            col_letter = ws.cell(row=1, column=idx).column_letter
-            ws.column_dimensions[col_letter].width = width
-
-    # 5) Highlight cuidados_paliativos rows
     paliativos_fill = PatternFill("solid", fgColor="FFAB66")
-    paliativos_col = col_index.get("cuidados_paliativos")
-
+    paliativos_col = None
+    for idx, cell in enumerate(ws[1], start=1):
+        if cell.value == "cuidados_paliativos":
+            paliativos_col = idx
+            break
     if paliativos_col:
         for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
-            val = row[paliativos_col - 1].value
-            if val in (1, True, "1", "true", "True"):
+            if row[paliativos_col - 1].value in (1, True, "1", "true", "True"):
                 for cell in row:
                     cell.fill = paliativos_fill
-
     wb.save(filename)
 
 
-def display_wrapped_table(df):
-    # Display a wrapped HTML DataFrame with cuidados paliativos highlight
-    df = df.copy()
 
+
+def display_wrapped_table(df):
+    """Display a wrapped HTML DataFrame with cuidados paliativos highlight."""
+    df = df.copy()
     def row_style(row):
         style = ""
         if row.get("cuidados_paliativos") in [1, True, "1", "true", "True"]:
             style = 'background-color: #FFAB66;'
-        return f'<tr style="{style}">' + "".join(f"<td>{x}</td>" for x in row) + "</tr>"
+        return f'<tr style="{style}">' + ''.join(f"<td>{x}</td>" for x in row) + "</tr>"
+
+
+
 
     table_html = (
         "<table class='dataframe'>"
@@ -304,6 +264,7 @@ def display_wrapped_table(df):
         "<tbody>" + "".join(row_style(row) for _, row in df.iterrows()) + "</tbody></table>"
     )
     st.markdown(table_html, unsafe_allow_html=True)
+
 
 
 
@@ -315,6 +276,8 @@ if st.session_state.authenticated:
         "Navegación",
         ["➕ Agregar Paciente", "📋 Ver / Editar Pacientes", "🎂 Cumpleaños"]
     )
+
+
 
 
     # ---------------- ADD PATIENT ----------------
@@ -339,6 +302,8 @@ if st.session_state.authenticated:
             submitted = st.form_submit_button("Agregar paciente")
 
 
+
+
             if submitted:
                 data = {
                     "nombre": nombre,
@@ -360,9 +325,13 @@ if st.session_state.authenticated:
                 st.success(f"✅ Paciente agregado exitosamente por {st.session_state.user_name}.")
 
 
+
+
     # ---------------- VIEW / EDIT / DELETE ----------------
     elif page == "📋 Ver / Editar Pacientes":
         st.subheader("❤️‍🩹 Lista de pacientes")
+
+
 
 
         query = supabase.table("pacientes").select("*").execute()
@@ -372,12 +341,18 @@ if st.session_state.authenticated:
             df["Edad"] = df["fecha_nacimiento"].apply(calculate_age)
 
 
+
+
             display_wrapped_table(df)  #highlight cuidados paliativos
+
+
 
 
             # --- EDIT SECTION ---
             selected_id = st.selectbox("Selecciona ID del paciente para editar", df["id"].tolist())
             patient_data = df[df["id"] == selected_id].iloc[0]
+
+
 
 
             with st.form("edit_patient_form"):
@@ -388,6 +363,8 @@ if st.session_state.authenticated:
                 estado = st.selectbox("Estado del paciente", ["activo", "vigilancia", "fallecido"],
                                       index=["activo", "vigilancia", "fallecido"].index(patient_data["estado"]))
                 submitted_edit = st.form_submit_button("💾 Guardar cambios")
+
+
 
 
                 if submitted_edit:
@@ -404,31 +381,20 @@ if st.session_state.authenticated:
                     st.rerun()
 
 
+
+
             # --- DELETE SECTION ---
-            st.divider()
-            st.subheader("Eliminar paciente")
-
-            delete_id = st.selectbox("🗑️ ID del paciente a eliminar", df["id"].tolist(), key="delete_id")
-            st.warning(f"⚠️ ¿Seguro que deseas eliminar el paciente con ID {delete_id}?")
-            confirm = st.checkbox(f"✅ Confirmo que deseo eliminar el paciente con ID {delete_id}")
-
-            if st.button("Eliminar definitivamente", disabled=not confirm):
-                delete_id_int = int(delete_id)
-
-                res = supabase.table("pacientes").delete().eq("id", delete_id_int).execute()
-                st.write("Delete response:", res)
-
-                verify = supabase.table("pacientes").select("id").eq("id", delete_id_int).execute()
-                st.write("Verify after delete:", verify)
-
-                update_last_edit(st.session_state.user_name)
-
-                if verify.data:
-                    st.error("No se eliminó. Probable RLS/policy bloqueando el DELETE.")
-                else:
-                    st.success(f"Paciente con ID {delete_id_int} eliminado correctamente.")
+            delete_id = st.number_input("🗑️ ID del paciente a eliminar", min_value=0, step=1)
+            if st.button("Confirmar eliminación"):
+                st.warning(f"⚠️ ¿Seguro que deseas eliminar el paciente con ID {delete_id}?")
+                if st.button("✅ Sí, eliminar permanentemente"):
+                    supabase.table("pacientes").delete().eq("id", delete_id).execute()
+                    update_last_edit(st.session_state.user_name)
+                    st.success(f"🗑️ Paciente con ID {delete_id} eliminado correctamente.")
                     st.rerun()
-                
+
+
+
 
             # --- EXPORT ---
             if st.button("📥 Exportar a Excel"):
@@ -438,6 +404,8 @@ if st.session_state.authenticated:
                     st.download_button("Descargar archivo Excel", data=file, file_name=filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         else:
             st.info("No hay pacientes registrados.")
+
+
 
 
     # ---------------- BIRTHDAYS ----------------
@@ -460,9 +428,13 @@ if st.session_state.authenticated:
             df_next_month = df[pd.to_datetime(df["fecha_nacimiento"]).dt.month == next_month]
 
 
+
+
             current_month_name = MONTHS_ES[datetime.today().strftime('%B')]
             st.markdown(f"### 🎉 Cumpleaños de **{current_month_name}**")
             display_wrapped_table(df_this_month[["nombre", "fecha_nacimiento", "Edad", "estado"]])
+
+
 
 
             next_month_name_en = datetime(datetime.today().year, next_month, 1).strftime('%B')
@@ -473,15 +445,18 @@ if st.session_state.authenticated:
             st.info("No hay pacientes registrados.")
 
 
+
+
     # ---------------- FOOTER ----------------
     last_user, last_time = get_last_edit()
     if last_user and last_time:
         try:
-            formatted_time = datetime.fromisoformat(last_time).strftime('%d/%m/%Y')
+            formatted_time = datetime.fromisoformat(last_time).strftime('%d/%m/%Y %H:%M')
         except Exception:
             formatted_time = last_time
         st.sidebar.markdown(
             f"<div class='bottom-left'>Última edición por <b>{last_user}</b> el {formatted_time}</div>",
             unsafe_allow_html=True
         )
+
 
