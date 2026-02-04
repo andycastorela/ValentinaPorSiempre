@@ -323,14 +323,18 @@ if st.session_state.authenticated:
                     st.rerun()
 
             # --- DELETE SECTION ---
-            delete_id = st.number_input("🗑️ ID del paciente a eliminar", min_value=0, step=1)
-            if st.button("Confirmar eliminación"):
-                st.warning(f"⚠️ ¿Seguro que deseas eliminar el paciente con ID {delete_id}?")
-                if st.button("✅ Sí, eliminar permanentemente"):
-                    supabase.table("pacientes").delete().eq("id", delete_id).execute()
-                    update_last_edit(st.session_state.user_name)
-                    st.success(f"🗑️ Paciente con ID {delete_id} eliminado correctamente.")
-                    st.rerun()
+            st.divider()
+            st.subheader("Eliminar paciente")
+
+            delete_id = st.selectbox("🗑️ ID del paciente a eliminar", df["id"].tolist(), key="delete_id")
+            st.warning(f"⚠️ ¿Seguro que deseas eliminar el paciente con ID {delete_id}?")
+            confirm = st.checkbox(f"✅ Confirmo que deseo eliminar el paciente con ID {delete_id}")
+
+            if st.button("Eliminar definitivamente", disabled=not confirm):
+                supabase.table("pacientes").delete().eq("id", int(delete_id)).execute()
+                update_last_edit(st.session_state.user_name)
+                st.success(f"🗑️ Paciente con ID {delete_id} eliminado correctamente.")
+                st.rerun()
 
             # --- EXPORT ---
             if st.button("📥 Exportar a Excel"):
