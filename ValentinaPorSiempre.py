@@ -56,11 +56,7 @@ def ensure_last_edit_table():
         except Exception as e:
             st.warning(f"No se pudo verificar/crear la tabla last_edit: {e}")
 
-
-
-
 ensure_last_edit_table()
-
 
 
 
@@ -74,9 +70,6 @@ def update_last_edit(user_name):
     except Exception as e:
         st.warning(f"⚠️ No se pudo actualizar el registro de edición en Supabase: {e}")
 
-
-
-
 def get_last_edit():
     try:
         result = supabase.table("last_edit").select("*").eq("id", 1).execute()
@@ -88,8 +81,6 @@ def get_last_edit():
     return None, None
 
 
-
-
 # ==========================================================
 #                 ACCESS CONTROL (LOGIN)
 # ==========================================================
@@ -97,30 +88,18 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
     st.session_state.user_name = ""
 
-
-
-
 if not st.session_state.authenticated:
     st.sidebar.title("🔐 Ingreso")
     user_key = st.sidebar.text_input("Introduce tu clave de acceso:", type="password")
-
-
-
 
     AUTHORIZED_KEYS = {
         "equipo_vxs": None,
         "valentina_master": "Andrea"
     }
 
-
-
-
     if user_key not in AUTHORIZED_KEYS:
         st.warning("Por favor, introduce la clave de acceso para continuar.")
         st.stop()
-
-
-
 
     if AUTHORIZED_KEYS[user_key] is None:
         user_name = st.sidebar.text_input("Tu nombre (para registrar ediciones):")
@@ -130,16 +109,10 @@ if not st.session_state.authenticated:
     else:
         user_name = AUTHORIZED_KEYS[user_key]
 
-
-
-
     if st.sidebar.button("Ingresar"):
         st.session_state.authenticated = True
         st.session_state.user_name = user_name
         st.rerun()
-
-
-
 
 # ==========================================================
 #                 STYLES & LOGO
@@ -150,9 +123,6 @@ def load_logo_base64(path: str):
         with open(file_path, "rb") as f:
             return base64.b64encode(f.read()).decode()
     return None
-
-
-
 
 logo_b64 = load_logo_base64("VxS_logo.png")
 st.markdown(f"""
@@ -191,13 +161,7 @@ st.markdown(f"""
     {'<img src="data:image/png;base64,' + logo_b64 + '" class="corner-image">' if logo_b64 else ''}
 """, unsafe_allow_html=True)
 
-
-
-
 st.markdown("<h1 class='custom-title'>💛 Valentina por Siempre</h1>", unsafe_allow_html=True)
-
-
-
 
 # ==========================================================
 #                 HELPER FUNCTIONS
@@ -207,9 +171,6 @@ def calculate_age(dob):
         dob = datetime.strptime(dob, "%Y-%m-%d").date()
     today = date.today()
     return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-
-
-
 
 def style_excel(df, filename):
     for col in ["fecha_nacimiento", "fecha_ultimo_apoyo"]:
@@ -227,9 +188,6 @@ def style_excel(df, filename):
         cell.alignment = header_alignment
     ws.freeze_panes = "A2"
 
-
-
-
     paliativos_fill = PatternFill("solid", fgColor="FFAB66")
     paliativos_col = None
     for idx, cell in enumerate(ws[1], start=1):
@@ -242,9 +200,6 @@ def style_excel(df, filename):
                 for cell in row:
                     cell.fill = paliativos_fill
     wb.save(filename)
-
-
-
 
 def display_wrapped_table(df):
     """Display a wrapped HTML DataFrame with cuidados paliativos highlight."""
