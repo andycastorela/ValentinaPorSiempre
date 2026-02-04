@@ -10,6 +10,7 @@ import base64
 from supabase import create_client
 from dotenv import load_dotenv
 import os
+from zoneinfo import ZoneInfo
 
 # ==========================================================
 #                 LOAD ENVIRONMENT VARIABLES
@@ -29,24 +30,36 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 # ==========================================================
 #           ENSURE last_edit TABLE EXISTS
 # ==========================================================
-def ensure_last_edit_table():
+def update_last_edit(user_name):
+    # Store timestamp in UTC (server-safe)
+    now_utc = datetime.now(ZoneInfo("UTC")).isoformat()
     try:
-        supabase.table("last_edit").select("*").limit(1).execute()
-    except Exception:
-        try:
-            supabase.rpc("execute_sql", {
-                "sql": """
-                create table if not exists public.last_edit (
-                    id bigint primary key,
-                    user_name text,
-                    timestamp timestamptz default now()
-                );
-                """
-            }).execute()
-        except Exception as e:
-            st.warning(f"No se pudo verificar/crear la tabla last_edit: {e}")
+        supabase.table("last_edit").upsert({
+            "id": 1,
+            "user_name": user_name,
+            "timestamp": now_utc
+        }).execute()
+    except Exception as e:
+        st.warning(f"⚠️ No se pudo actualizar el registro de edición en Supabase: {e}")
 
-ensure_last_edit_table()
+
+def get_last_edit():
+    try:
+        result = supabase.table("last_edit").select("*").eq("id", 1).execute()
+        if result.data:
+            record = result.data[0]
+
+            # Convert UTC → local timezone for display
+            utc_dt = datetime.fromisoformat(record["timestamp"]).replace(
+                tzinfo=ZoneInfo("UTC")
+            )
+            local_dt = utc_dt.astimezone(ZoneInfo("America/Mexico_City"))
+
+            return record.get("user_name"), local_dt.isoformat()
+    except Exception:
+        return None, None
+    return None, None
+
 
 # ==========================================================
 #               LAST EDIT HELPERS
