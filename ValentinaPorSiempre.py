@@ -1,8 +1,5 @@
 import streamlit as st
-
-
 st.set_page_config(page_title="Valentina por Siempre", page_icon="VxS_logo.png", layout="wide")
-
 
 import pandas as pd
 from datetime import date, datetime
@@ -13,9 +10,6 @@ import base64
 from supabase import create_client
 from dotenv import load_dotenv
 import os
-
-
-
 
 # ==========================================================
 #                 LOAD ENVIRONMENT VARIABLES
@@ -30,11 +24,7 @@ except Exception:
     SUPABASE_URL = os.getenv("SUPABASE_URL")
     SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-
-
 
 # ==========================================================
 #           ENSURE last_edit TABLE EXISTS
@@ -58,8 +48,6 @@ def ensure_last_edit_table():
 
 ensure_last_edit_table()
 
-
-
 # ==========================================================
 #               LAST EDIT HELPERS
 # ==========================================================
@@ -79,7 +67,6 @@ def get_last_edit():
     except Exception:
         return None, None
     return None, None
-
 
 # ==========================================================
 #                 ACCESS CONTROL (LOGIN)
@@ -210,18 +197,12 @@ def display_wrapped_table(df):
             style = 'background-color: #FFAB66;'
         return f'<tr style="{style}">' + ''.join(f"<td>{x}</td>" for x in row) + "</tr>"
 
-
-
-
     table_html = (
         "<table class='dataframe'>"
         "<thead><tr>" + "".join(f"<th>{c}</th>" for c in df.columns) + "</tr></thead>"
         "<tbody>" + "".join(row_style(row) for _, row in df.iterrows()) + "</tbody></table>"
     )
     st.markdown(table_html, unsafe_allow_html=True)
-
-
-
 
 # ==========================================================
 #                 MAIN INTERFACE
@@ -231,9 +212,6 @@ if st.session_state.authenticated:
         "Navegación",
         ["➕ Agregar Paciente", "📋 Ver / Editar Pacientes", "🎂 Cumpleaños"]
     )
-
-
-
 
     # ---------------- ADD PATIENT ----------------
     if page == "➕ Agregar Paciente":
@@ -256,9 +234,6 @@ if st.session_state.authenticated:
             cuidados_paliativos = st.checkbox("¿Está en cuidados paliativos?")
             submitted = st.form_submit_button("Agregar paciente")
 
-
-
-
             if submitted:
                 data = {
                     "nombre": nombre,
@@ -279,15 +254,9 @@ if st.session_state.authenticated:
                 update_last_edit(st.session_state.user_name)
                 st.success(f"✅ Paciente agregado exitosamente por {st.session_state.user_name}.")
 
-
-
-
     # ---------------- VIEW / EDIT / DELETE ----------------
     elif page == "📋 Ver / Editar Pacientes":
         st.subheader("❤️‍🩹 Lista de pacientes")
-
-
-
 
         query = supabase.table("pacientes").select("*").execute()
         df = pd.DataFrame(query.data)
@@ -295,20 +264,11 @@ if st.session_state.authenticated:
             df = df.sort_values(by="id", ascending=True).reset_index(drop=True)
             df["Edad"] = df["fecha_nacimiento"].apply(calculate_age)
 
-
-
-
             display_wrapped_table(df)  #highlight cuidados paliativos
-
-
-
 
             # --- EDIT SECTION ---
             selected_id = st.selectbox("Selecciona ID del paciente para editar", df["id"].tolist())
             patient_data = df[df["id"] == selected_id].iloc[0]
-
-
-
 
             with st.form("edit_patient_form"):
                 nombre_tutor = st.text_input("Nombre del tutor", value=patient_data["nombre_tutor"])
@@ -318,9 +278,6 @@ if st.session_state.authenticated:
                 estado = st.selectbox("Estado del paciente", ["activo", "vigilancia", "fallecido"],
                                       index=["activo", "vigilancia", "fallecido"].index(patient_data["estado"]))
                 submitted_edit = st.form_submit_button("💾 Guardar cambios")
-
-
-
 
                 if submitted_edit:
                     update_data = {
@@ -335,9 +292,6 @@ if st.session_state.authenticated:
                     st.success("✅ Cambios guardados correctamente.")
                     st.rerun()
 
-
-
-
             # --- DELETE SECTION ---
             delete_id = st.number_input("🗑️ ID del paciente a eliminar", min_value=0, step=1)
             if st.button("Confirmar eliminación"):
@@ -348,9 +302,6 @@ if st.session_state.authenticated:
                     st.success(f"🗑️ Paciente con ID {delete_id} eliminado correctamente.")
                     st.rerun()
 
-
-
-
             # --- EXPORT ---
             if st.button("📥 Exportar a Excel"):
                 filename = "pacientes_valentina.xlsx"
@@ -359,9 +310,6 @@ if st.session_state.authenticated:
                     st.download_button("Descargar archivo Excel", data=file, file_name=filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         else:
             st.info("No hay pacientes registrados.")
-
-
-
 
     # ---------------- BIRTHDAYS ----------------
     elif page == "🎂 Cumpleaños":
@@ -382,15 +330,9 @@ if st.session_state.authenticated:
             df_this_month = df[pd.to_datetime(df["fecha_nacimiento"]).dt.month == current_month]
             df_next_month = df[pd.to_datetime(df["fecha_nacimiento"]).dt.month == next_month]
 
-
-
-
             current_month_name = MONTHS_ES[datetime.today().strftime('%B')]
             st.markdown(f"### 🎉 Cumpleaños de **{current_month_name}**")
             display_wrapped_table(df_this_month[["nombre", "fecha_nacimiento", "Edad", "estado"]])
-
-
-
 
             next_month_name_en = datetime(datetime.today().year, next_month, 1).strftime('%B')
             next_month_name = MONTHS_ES[next_month_name_en]
@@ -398,9 +340,6 @@ if st.session_state.authenticated:
             display_wrapped_table(df_next_month[["nombre", "fecha_nacimiento", "Edad", "estado"]])
         else:
             st.info("No hay pacientes registrados.")
-
-
-
 
     # ---------------- FOOTER ----------------
     last_user, last_time = get_last_edit()
@@ -413,5 +352,4 @@ if st.session_state.authenticated:
             f"<div class='bottom-left'>Última edición por <b>{last_user}</b> el {formatted_time}</div>",
             unsafe_allow_html=True
         )
-
 
