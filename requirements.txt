@@ -1,10 +1,6 @@
-streamlit==1.38.0
-pandas==2.2.3
-openpyxl==3.1.5
-python-dotenv==1.0.1
-python-3.11
-supabase==2.7.4
-supabase-auth==2.7.4
-postgrest==0.16.8
-storage3==0.7.6
-realtime==1.0.6
+supabase==2.24.0
+supabase-auth==2.24.0
+supabase-functions==2.24.0
+postgrest==2.24.0
+realtime==2.24.0
+storage3==2.24.0
