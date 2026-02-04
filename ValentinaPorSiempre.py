@@ -212,7 +212,6 @@ def style_excel(df, filename):
 
     ws.freeze_panes = "A2"
 
-    # --- Suggested column widths (adjusted for content type) ---
     column_widths = {
         "A": 22,  # nombre
         "B": 16,  # fecha_nacimiento
@@ -226,7 +225,7 @@ def style_excel(df, filename):
         "J": 18,  # fecha_ultimo_apoyo
         "K": 35,  # notas
         "L": 16,  # estado
-        "M": 18   # cuidados_paliativos
+        "M": 30   # cuidados_paliativos
     }
 
     for col_letter, width in column_widths.items():
