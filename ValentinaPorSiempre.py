@@ -30,6 +30,28 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 # ==========================================================
 #           ENSURE last_edit TABLE EXISTS
 # ==========================================================
+def ensure_last_edit_table():
+    try:
+        supabase.table("last_edit").select("*").limit(1).execute()
+    except Exception:
+        try:
+            supabase.rpc("execute_sql", {
+                "sql": """
+                create table if not exists public.last_edit (
+                    id bigint primary key,
+                    user_name text,
+                    timestamp timestamptz default now()
+                );
+                """
+            }).execute()
+        except Exception as e:
+            st.warning(f"No se pudo verificar/crear la tabla last_edit: {e}")
+
+ensure_last_edit_table()
+
+# ==========================================================
+#               LAST EDIT HELPERS
+# ==========================================================
 def update_last_edit(user_name):
     # Store timestamp in UTC (server-safe)
     now_utc = datetime.now(ZoneInfo("UTC")).isoformat()
@@ -56,27 +78,6 @@ def get_last_edit():
             local_dt = utc_dt.astimezone(ZoneInfo("America/Mexico_City"))
 
             return record.get("user_name"), local_dt.isoformat()
-    except Exception:
-        return None, None
-    return None, None
-
-
-# ==========================================================
-#               LAST EDIT HELPERS
-# ==========================================================
-def update_last_edit(user_name):
-    now = datetime.now().isoformat()
-    try:
-        supabase.table("last_edit").upsert({"id": 1, "user_name": user_name, "timestamp": now}).execute()
-    except Exception as e:
-        st.warning(f"⚠️ No se pudo actualizar el registro de edición en Supabase: {e}")
-
-def get_last_edit():
-    try:
-        result = supabase.table("last_edit").select("*").eq("id", 1).execute()
-        if result.data:
-            record = result.data[0]
-            return record.get("user_name"), record.get("timestamp")
     except Exception:
         return None, None
     return None, None
