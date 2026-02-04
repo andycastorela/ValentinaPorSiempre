@@ -190,33 +190,73 @@ def calculate_age(dob):
     return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
 
 def style_excel(df, filename):
+    # --- Ensure date columns are real dates ---
     for col in ["fecha_nacimiento", "fecha_ultimo_apoyo"]:
         if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors='coerce').dt.date
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
+
+    # --- Export DataFrame ---
     df.to_excel(filename, index=False)
     wb = load_workbook(filename)
     ws = wb.active
+
+    # --- Header styling ---
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill("solid", fgColor="ff8330")
-    header_alignment = Alignment(horizontal="center", vertical="center")
+    header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
     for cell in ws[1]:
         cell.font = header_font
         cell.fill = header_fill
         cell.alignment = header_alignment
+
     ws.freeze_panes = "A2"
 
+    # --- Suggested column widths (adjusted for content type) ---
+    column_widths = {
+        "A": 22,  # nombre
+        "B": 16,  # fecha_nacimiento
+        "C": 22,  # nombre_tutor
+        "D": 30,  # diagnostico
+        "E": 20,  # etapa_tratamiento
+        "F": 22,  # hospital
+        "G": 18,  # estado_origen
+        "H": 18,  # telefono_contacto
+        "I": 30,  # apoyos_entregados
+        "J": 18,  # fecha_ultimo_apoyo
+        "K": 35,  # notas
+        "L": 16,  # estado
+        "M": 18   # cuidados_paliativos
+    }
+
+    for col_letter, width in column_widths.items():
+        ws.column_dimensions[col_letter].width = width
+
+    # --- Wrap text for ALL data cells ---
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+        for cell in row:
+            cell.alignment = Alignment(
+                wrap_text=True,
+                vertical="top"
+            )
+
+    # --- Highlight palliative care rows ---
     paliativos_fill = PatternFill("solid", fgColor="FFAB66")
     paliativos_col = None
+
     for idx, cell in enumerate(ws[1], start=1):
         if cell.value == "cuidados_paliativos":
             paliativos_col = idx
             break
+
     if paliativos_col:
         for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
             if row[paliativos_col - 1].value in (1, True, "1", "true", "True"):
                 for cell in row:
                     cell.fill = paliativos_fill
+
     wb.save(filename)
+
 
 def display_wrapped_table(df):
     """Display a wrapped HTML DataFrame with cuidados paliativos highlight."""
@@ -328,7 +368,7 @@ if st.session_state.authenticated:
 
             delete_id = st.selectbox("🗑️ ID del paciente a eliminar", df["id"].tolist(), key="delete_id")
             st.warning(f"⚠️ ¿Seguro que deseas eliminar el paciente con ID {delete_id}?")
-            confirm = st.checkbox(f"✅ Confirmo que deseo eliminar el paciente con ID {delete_id}")
+            confirm = st.checkbox(f"Confirmo que deseo eliminar el paciente con ID {delete_id}")
 
             if st.button("Eliminar definitivamente", disabled=not confirm):
                 supabase.table("pacientes").delete().eq("id", int(delete_id)).execute()
