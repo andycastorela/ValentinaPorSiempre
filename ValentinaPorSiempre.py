@@ -213,19 +213,20 @@ def style_excel(df, filename):
     ws.freeze_panes = "A2"
 
     column_widths = {
-        "A": 22,  # nombre
-        "B": 16,  # fecha_nacimiento
-        "C": 22,  # nombre_tutor
-        "D": 30,  # diagnostico
-        "E": 20,  # etapa_tratamiento
-        "F": 22,  # hospital
-        "G": 18,  # estado_origen
-        "H": 18,  # telefono_contacto
-        "I": 30,  # apoyos_entregados
-        "J": 18,  # fecha_ultimo_apoyo
-        "K": 35,  # notas
-        "L": 16,  # estado
-        "M": 30   # cuidados_paliativos
+        "A": 10,  #ID
+        "B": 22,  # nombre
+        "C": 16,  # fecha_nacimiento
+        "D": 22,  # nombre_tutor
+        "E": 30,  # diagnostico
+        "F": 20,  # etapa_tratamiento
+        "G": 22,  # hospital
+        "H": 18,  # estado_origen
+        "I": 18,  # telefono_contacto
+        "J": 30,  # apoyos_entregados
+        "K": 18,  # fecha_ultimo_apoyo
+        "L": 35,  # notas
+        "M": 16,  # estado
+        "N": 18,  # cuidados_paliativos 
     }
 
     for col_letter, width in column_widths.items():
